@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecLab — CIA & WebCrypto</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col font-mono text-xs selection:bg-zinc-800">
+
+  <header class="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-6 h-12 flex items-center justify-between">
+      <span class="font-bold tracking-wider text-zinc-100">
+        Lab
+      </span>
+      <nav class="flex gap-6">
+        <a href="index.html" class="text-zinc-400 hover:text-zinc-200 transition">Overview</a>
+        <a href="crypto.html" class="text-zinc-100 font-semibold border-b border-zinc-100 pb-0.5">CIA & WebCrypto</a>
+        <a href="phishing.html" class="text-zinc-400 hover:text-zinc-200 transition">Phishing Heuristics</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-5xl mx-auto px-6 py-10 w-full space-y-8">
+    
+    <!-- 01: Integrity / Hashing -->
+    <section class="border border-zinc-800 rounded bg-zinc-900/20 p-5 space-y-3">
+      <div class="flex justify-between items-baseline">
+        <span class="text-zinc-300 font-semibold">01. Integrity // SHA-256 Digest & Bit Flips</span>
+        <span class="text-zinc-500 text-[10px]">Continuous Hash Computation</span>
+      </div>
+      <input id="hashInput" type="text" placeholder="Input plaintext to recalculate digest..." 
+             class="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-zinc-600 transition" />
+      <div>
+        <div class="text-zinc-500 text-[10px] mb-1">Digest (Hex):</div>
+        <div id="hashOutput" class="bg-zinc-950 border border-zinc-800 rounded p-2.5 text-emerald-400 break-all select-all font-mono">
+          e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        </div>
+      </div>
+    </section>
+
+    <!-- 02: Confidentiality / AES-GCM -->
+    <section class="border border-zinc-800 rounded bg-zinc-900/20 p-5 space-y-4">
+      <div class="flex justify-between items-baseline">
+        <span class="text-zinc-300 font-semibold">02. Confidentiality // AES-256-GCM Symmetric Cipher</span>
+        <span class="text-zinc-500 text-[10px]">Authenticated Encryption</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Encrypt Column -->
+        <div class="space-y-2">
+          <input id="plainInput" type="text" placeholder="Plaintext payload"
+                 class="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-zinc-600" />
+          <button id="encryptBtn" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-100 py-1.5 rounded transition font-medium">
+            Generate Key & Encrypt
+          </button>
+        </div>
+        <!-- Decrypt Column -->
+        <div class="space-y-2">
+          <button id="decryptBtn" disabled class="w-full bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:hover:bg-zinc-800 text-zinc-100 py-1.5 rounded transition font-medium">
+            Decrypt Buffer
+          </button>
+          <div id="decryptedOutput" class="bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-zinc-400 truncate">
+            Decrypted text will render here...
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="text-zinc-500 text-[10px] mb-1">Ciphertext (Base64 [IV + Tag + Data]):</div>
+        <div id="cipherOutput" class="bg-zinc-950 border border-zinc-800 rounded p-2.5 text-zinc-400 break-all font-mono">
+          Awaiting encryption execution...
+        </div>
+      </div>
+    </section>
+
+    <!-- 03: Password Entropy / Search Space -->
+    <section class="border border-zinc-800 rounded bg-zinc-900/20 p-5 space-y-3">
+      <div class="flex justify-between items-baseline">
+        <span class="text-zinc-300 font-semibold">03. Defense // Exhaustive Key Search Calculation</span>
+        <span class="text-zinc-500 text-[10px]">H = L &times; log<sub>2</sub>(N)</span>
+      </div>
+      <input id="pwdInput" type="text" placeholder="Input test string or credential..."
+             class="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-zinc-600" />
+      <div class="grid grid-cols-3 gap-3 pt-1">
+        <div class="bg-zinc-950 border border-zinc-800 p-3 rounded">
+          <span class="text-zinc-500 text-[10px] block">Entropy</span>
+          <span id="entropyVal" class="text-sm font-semibold text-zinc-200">0.00 bits</span>
+        </div>
+        <div class="bg-zinc-950 border border-zinc-800 p-3 rounded">
+          <span class="text-zinc-500 text-[10px] block">Search Pool (N)</span>
+          <span id="poolVal" class="text-sm font-semibold text-zinc-200">0 glyphs</span>
+        </div>
+        <div class="bg-zinc-950 border border-zinc-800 p-3 rounded">
+          <span class="text-zinc-500 text-[10px] block">Offline Cluster Cracking (100 GH/s)</span>
+          <span id="crackVal" class="text-sm font-semibold text-zinc-200">&lt; 1 ms</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // 1. SHA-256 Engine
+    const hashInput = document.getElementById('hashInput');
+    const hashOutput = document.getElementById('hashOutput');
+    hashInput.addEventListener('input', async (e) => {
+      const buffer = new TextEncoder().encode(e.target.value);
+      const digest = await crypto.subtle.digest('SHA-256', buffer);
+      hashOutput.textContent = Array.from(new Uint8Array(digest))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+    });
+
+    // 2. AES-256-GCM State & Engine
+    let activeKey = null;
+    let encryptedBuffer = null;
+    let ivBuffer = null;
+
+    const plainInput = document.getElementById('plainInput');
+    const encryptBtn = document.getElementById('encryptBtn');
+    const decryptBtn = document.getElementById('decryptBtn');
+    const cipherOutput = document.getElementById('cipherOutput');
+    const decryptedOutput = document.getElementById('decryptedOutput');
+
+    encryptBtn.addEventListener('click', async () => {
+      const plaintext = plainInput.value;
+      if (!plaintext) return;
+
+      activeKey = await crypto.subtle.generateKey(
+        { name: 'AES-GCM', length: 256 },
+        true,
+        ['encrypt', 'decrypt']
+      );
+      ivBuffer = crypto.getRandomValues(new Uint8Array(12));
+      encryptedBuffer = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: ivBuffer },
+        activeKey,
+        new TextEncoder().encode(plaintext)
+      );
+
+      const packet = new Uint8Array(ivBuffer.length + encryptedBuffer.byteLength);
+      packet.set(ivBuffer);
+      packet.set(new Uint8Array(encryptedBuffer), ivBuffer.length);
+
+      cipherOutput.textContent = btoa(String.fromCharCode(...packet));
+      cipherOutput.className = 'bg-zinc-950 border border-zinc-800 rounded p-2.5 text-indigo-400 break-all font-mono';
+      decryptBtn.disabled = false;
+      decryptedOutput.textContent = 'Ready to decrypt payload.';
+    });
+
+    decryptBtn.addEventListener('click', async () => {
+      if (!activeKey || !encryptedBuffer) return;
+      try {
+        const decrypted = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: ivBuffer },
+          activeKey,
+          encryptedBuffer
+        );
+        decryptedOutput.textContent = new TextDecoder().decode(decrypted);
+        decryptedOutput.className = 'bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-emerald-400 truncate';
+      } catch (err) {
+        decryptedOutput.textContent = 'Decryption failed: integrity check rejected.';
+        decryptedOutput.className = 'bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-rose-400 truncate';
+      }
+    });
+
+    // 3. Entropy & Search Space
+    const pwdInput = document.getElementById('pwdInput');
+    const entropyVal = document.getElementById('entropyVal');
+    const poolVal = document.getElementById('poolVal');
+    const crackVal = document.getElementById('crackVal');
+
+    pwdInput.addEventListener('input', (e) => {
+      const text = e.target.value;
+      let pool = 0;
+      if (/[a-z]/.test(text)) pool += 26;
+      if (/[A-Z]/.test(text)) pool += 26;
+      if (/[0-9]/.test(text)) pool += 10;
+      if (/[^a-zA-Z0-9]/.test(text)) pool += 32;
+
+      const entropy = text.length && pool ? (text.length * Math.log2(pool)).toFixed(2) : 0;
+      entropyVal.textContent = `${entropy} bits`;
+      poolVal.textContent = `${pool} symbols`;
+
+      if (text.length === 0 || pool === 0) {
+        crackVal.textContent = '< 1 ms';
+        return;
+      }
+
+      const combinations = Math.pow(pool, text.length);
+      const seconds = combinations / 1e11; // 100 Billion keys/second
+
+      if (seconds < 1) crackVal.textContent = 'Instant (< 1s)';
+      else if (seconds < 60) crackVal.textContent = `${Math.round(seconds)} seconds`;
+      else if (seconds < 3600) crackVal.textContent = `${Math.round(seconds / 60)} minutes`;
+      else if (seconds < 86400) crackVal.textContent = `${Math.round(seconds / 3600)} hours`;
+      else if (seconds < 31536000) crackVal.textContent = `${Math.round(seconds / 86400)} days`;
+      else crackVal.textContent = `${(seconds / 31536000).toExponential(2)} years`;
+    });
+  </script>
+</body>
+</html>

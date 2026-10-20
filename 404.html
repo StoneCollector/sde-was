@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecLab — 404 Not Found</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col font-mono text-xs selection:bg-zinc-800">
+
+  <!-- Minimal Nav -->
+  <header class="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-6 h-12 flex items-center justify-between">
+      <span class="font-bold tracking-wider text-zinc-100">
+        Lab
+      </span>
+      <nav class="flex gap-6">
+        <a href="index.html" class="text-zinc-400 hover:text-zinc-200 transition">Overview</a>
+        <a href="crypto.html" class="text-zinc-400 hover:text-zinc-200 transition">CIA & WebCrypto</a>
+        <a href="phishing.html" class="text-zinc-400 hover:text-zinc-200 transition">Phishing Heuristics</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main View -->
+  <main class="flex-1 max-w-5xl mx-auto px-6 py-20 w-full flex flex-col items-center justify-center text-center space-y-6">
+    <div class="space-y-2">
+      <div class="text-rose-500 font-bold text-base tracking-widest uppercase">404 // Resource Not Found</div>
+      <h1 class="text-2xl font-bold text-zinc-100 tracking-tight">Endpoint Unreachable</h1>
+      <p class="text-zinc-500 max-w-md mx-auto leading-relaxed">
+        The requested routing node or resource does not exist in this workbench repository.
+      </p>
+    </div>
+
+    <div class="pt-2">
+      <a href="index.html" class="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 rounded font-medium transition">
+        <span>&larr;</span> Return to Lab Overview
+      </a>
+    </div>
+  </main>
+</body>
+</html>

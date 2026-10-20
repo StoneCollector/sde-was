@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecLab — Phishing Heuristics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col font-mono text-xs selection:bg-zinc-800">
+
+  <header class="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-6 h-12 flex items-center justify-between">
+      <span class="font-bold tracking-wider text-zinc-100">
+        Lab
+      </span>
+      <nav class="flex gap-6">
+        <a href="index.html" class="text-zinc-400 hover:text-zinc-200 transition">Overview</a>
+        <a href="crypto.html" class="text-zinc-400 hover:text-zinc-200 transition">CIA & WebCrypto</a>
+        <a href="phishing.html" class="text-zinc-100 font-semibold border-b border-zinc-100 pb-0.5">Phishing Heuristics</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-5xl mx-auto px-6 py-10 w-full space-y-8">
+    
+    <!-- Input & Execution Bar -->
+    <section class="border border-zinc-800 rounded bg-zinc-900/20 p-5 space-y-3">
+      <div class="flex justify-between items-baseline">
+        <span class="text-zinc-300 font-semibold">Lexical Threat & Domain Inspection</span>
+        <span class="text-zinc-500 text-[10px]">Client-Side Parser</span>
+      </div>
+      <div class="flex gap-2">
+        <input id="targetUrl" type="text" placeholder="https://secure.login.paypal.com.attacker-node.xyz/auth?token=..." 
+               class="flex-1 bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-zinc-600 transition" />
+        <button id="scanBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-5 rounded font-medium transition">
+          Analyze
+        </button>
+      </div>
+      <div class="flex gap-2 pt-1 text-[11px] text-zinc-500">
+        <span>Presets:</span>
+        <button class="underline hover:text-zinc-300 transition" onclick="loadPreset('http://192.168.1.1/login.php')">Raw IP</button>
+        <span>&bull;</span>
+        <button class="underline hover:text-zinc-300 transition" onclick="loadPreset('https://pаypal.com/auth')">Cyrillic Homoglyph</button>
+        <span>&bull;</span>
+        <button class="underline hover:text-zinc-300 transition" onclick="loadPreset('https://accounts.google.com.user-verify.top/recovery')">Multi-Subdomain</button>
+      </div>
+    </section>
+
+    <!-- Scan Results -->
+    <div id="resultsCard" class="border border-zinc-800 rounded bg-zinc-900/20 p-5 space-y-6 hidden">
+      <!-- Status Badge & Score -->
+      <div class="flex justify-between items-center border-b border-zinc-800/80 pb-4">
+        <div>
+          <span class="text-zinc-500 text-[10px] block uppercase tracking-wider">Threat Profile</span>
+          <span id="riskVerdict" class="text-sm font-bold tracking-wide">ANALYSIS COMPLETE</span>
+        </div>
+        <div class="text-right">
+          <span class="text-zinc-500 text-[10px] block uppercase tracking-wider">Risk Score</span>
+          <span id="riskScore" class="text-sm font-bold font-mono">0 / 100</span>
+        </div>
+      </div>
+
+      <!-- Component Breakdown -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]">
+        <div class="bg-zinc-950 border border-zinc-800 p-2.5 rounded">
+          <span class="text-zinc-500 text-[10px] block">Protocol</span>
+          <span id="parsedProto" class="text-zinc-300 font-mono">-</span>
+        </div>
+        <div class="bg-zinc-950 border border-zinc-800 p-2.5 rounded">
+          <span class="text-zinc-500 text-[10px] block">Host Domain</span>
+          <span id="parsedHost" class="text-zinc-300 font-mono break-all">-</span>
+        </div>
+        <div class="bg-zinc-950 border border-zinc-800 p-2.5 rounded">
+          <span class="text-zinc-500 text-[10px] block">Subdomain Count</span>
+          <span id="parsedSubCount" class="text-zinc-300 font-mono">-</span>
+        </div>
+        <div class="bg-zinc-950 border border-zinc-800 p-2.5 rounded">
+          <span class="text-zinc-500 text-[10px] block">Punycode Conversion</span>
+          <span id="parsedPuny" class="text-zinc-300 font-mono break-all">-</span>
+        </div>
+      </div>
+
+      <!-- Findings List -->
+      <div class="space-y-2">
+        <span class="text-zinc-400 font-semibold block text-[11px]">Triggered Heuristic Flags</span>
+        <div id="flagsList" class="space-y-1.5 font-mono"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const targetUrl = document.getElementById('targetUrl');
+    const scanBtn = document.getElementById('scanBtn');
+    const resultsCard = document.getElementById('resultsCard');
+    const riskVerdict = document.getElementById('riskVerdict');
+    const riskScore = document.getElementById('riskScore');
+    const flagsList = document.getElementById('flagsList');
+
+    const parsedProto = document.getElementById('parsedProto');
+    const parsedHost = document.getElementById('parsedHost');
+    const parsedSubCount = document.getElementById('parsedSubCount');
+    const parsedPuny = document.getElementById('parsedPuny');
+
+    const RISKY_TLDS = ['.xyz', '.top', '.tk', '.work', '.click', '.fit', '.gq', '.ga', '.cf', '.buzz', '.monster'];
+
+    function loadPreset(url) {
+      targetUrl.value = url;
+      runAnalysis();
+    }
+
+    function runAnalysis() {
+      let raw = targetUrl.value.trim();
+      if (!raw) return;
+
+      if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
+        raw = 'https://' + raw;
+      }
+
+      let parsed;
+      try {
+        parsed = new URL(raw);
+      } catch {
+        alert('Invalid URI structure.');
+        return;
+      }
+
+      let score = 0;
+      const flags = [];
+
+      // 1. Insecure Protocol
+      if (parsed.protocol === 'http:') {
+        score += 25;
+        flags.push({ rule: 'CLEAR_TEXT_TRANSPORT', desc: 'Protocol is unencrypted HTTP (no TLS authentication).', sev: 'HIGH' });
+      }
+
+      // 2. Direct IPv4 / IPv6 as Hostname
+      const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+      if (ipPattern.test(parsed.hostname)) {
+        score += 35;
+        flags.push({ rule: 'IP_ADDRESS_HOST', desc: 'Host uses a literal numeric IP address, bypassing standard domain reputation.', sev: 'CRITICAL' });
+      }
+
+      // 3. Subdomain Depth / Obfuscation
+      const parts = parsed.hostname.split('.');
+      if (parts.length > 3) {
+        score += 20;
+        flags.push({ rule: 'DEEP_SUBDOMAIN_LAYERING', desc: `Detected ${parts.length - 2} subdomain levels, commonly used to camouflage host identities.`, sev: 'MEDIUM' });
+      }
+
+      // 4. Lookalike Homoglyph / Non-ASCII Characters
+      let hasNonAscii = false;
+      for (let i = 0; i < parsed.hostname.length; i++) {
+        if (parsed.hostname.charCodeAt(i) > 127) {
+          hasNonAscii = true;
+          break;
+        }
+      }
+      if (hasNonAscii) {
+        score += 40;
+        flags.push({ rule: 'HOMOGLYPH_PUNYCODE_SPOOF', desc: 'Domain contains non-ASCII/Cyrillic characters mimicking standard Latin symbols.', sev: 'CRITICAL' });
+      }
+
+      // 5. High-Risk TLD Check
+      const matchesRiskyTld = RISKY_TLDS.some(tld => parsed.hostname.endsWith(tld));
+      if (matchesRiskyTld) {
+        score += 20;
+        flags.push({ rule: 'SUSPICIOUS_TLD', desc: 'Domain resides on a top-level domain frequently associated with abuse and bulk disposable registration.', sev: 'MEDIUM' });
+      }
+
+      // 6. Suspicious Credentials or Token Path Patterns
+      if (parsed.pathname.includes('login') || parsed.pathname.includes('signin') || parsed.pathname.includes('account')) {
+        if (score > 20) {
+          score += 15;
+          flags.push({ rule: 'CREDENTIAL_HARVEST_TARGET', desc: 'Path mirrors standard authentication gateways while domain risk is elevated.', sev: 'HIGH' });
+        }
+      }
+
+      // Cap score
+      score = Math.min(score, 100);
+
+      // Render Details
+      parsedProto.textContent = parsed.protocol;
+      parsedHost.textContent = parsed.hostname;
+      parsedSubCount.textContent = Math.max(0, parts.length - 2);
+      parsedPuny.textContent = hasNonAscii ? encodeURI(parsed.hostname) : 'None (Standard ASCII)';
+
+      riskScore.textContent = `${score} / 100`;
+
+      if (score >= 60) {
+        riskVerdict.textContent = 'HIGH RISK // SUSPECT PHISHING';
+        riskVerdict.className = 'text-sm font-bold tracking-wide text-rose-400';
+        riskScore.className = 'text-sm font-bold font-mono text-rose-400';
+      } else if (score >= 25) {
+        riskVerdict.textContent = 'SUSPICIOUS // ELEVATED RISK';
+        riskVerdict.className = 'text-sm font-bold tracking-wide text-amber-400';
+        riskScore.className = 'text-sm font-bold font-mono text-amber-400';
+      } else {
+        riskVerdict.textContent = 'LOW RISK // MINIMAL THREAT INDICATORS';
+        riskVerdict.className = 'text-sm font-bold tracking-wide text-emerald-400';
+        riskScore.className = 'text-sm font-bold font-mono text-emerald-400';
+      }
+
+      flagsList.innerHTML = '';
+      if (flags.length === 0) {
+        flagsList.innerHTML = `<div class="p-2.5 bg-zinc-950 border border-zinc-800 text-zinc-400 rounded">No active heuristic risk patterns detected.</div>`;
+      } else {
+        flags.forEach(f => {
+          const color = f.sev === 'CRITICAL' ? 'text-rose-400 border-rose-900/40' : f.sev === 'HIGH' ? 'text-amber-400 border-amber-900/40' : 'text-zinc-300 border-zinc-800';
+          flagsList.innerHTML += `
+            <div class="p-2.5 bg-zinc-950 border ${color} rounded flex justify-between items-start gap-4">
+              <div>
+                <span class="font-bold block">${f.rule}</span>
+                <span class="text-zinc-500 text-[10px]">${f.desc}</span>
+              </div>
+              <span class="text-[10px] font-bold tracking-wider">${f.sev}</span>
+            </div>
+          `;
+        });
+      }
+
+      resultsCard.classList.remove('hidden');
+    }
+
+    scanBtn.addEventListener('click', runAnalysis);
+  </script>
+</body>
+</html>

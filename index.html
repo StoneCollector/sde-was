@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecLab — Applied Security Workbench</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col font-mono text-xs selection:bg-zinc-800">
+
+  <!-- Minimal Nav -->
+  <header class="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-6 h-12 flex items-center justify-between">
+      <span class="font-bold tracking-wider text-zinc-100">
+        Lab
+      </span>
+      <nav class="flex gap-6">
+        <a href="index.html" class="text-zinc-100 font-semibold border-b border-zinc-100 pb-0.5">Overview</a>
+        <a href="crypto.html" class="text-zinc-400 hover:text-zinc-200 transition">CIA & WebCrypto</a>
+        <a href="phishing.html" class="text-zinc-400 hover:text-zinc-200 transition">Phishing Heuristics</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main View -->
+  <main class="flex-1 max-w-5xl mx-auto px-6 py-12 w-full space-y-10">
+    <div>
+      <h1 class="text-lg font-bold text-zinc-100 tracking-tight">Security Primitives & Threat Analysis</h1>
+    </div>
+
+    <!-- Navigation Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <a href="crypto.html" class="p-5 border border-zinc-800 rounded bg-zinc-900/30 hover:border-zinc-700 transition block group">
+        <div class="flex justify-between items-center mb-3">
+          <span class="text-zinc-300 font-semibold group-hover:text-emerald-400 transition">01 / CIA Primitives</span>
+          <span class="text-zinc-600 font-bold">&rarr;</span>
+        </div>
+        <p class="text-zinc-500 leading-relaxed mb-4">
+          Client-side cryptographic implementations using W3C Web Crypto APIs: AES-256-GCM, SHA-256 hashing, and search-space entropy calculations.
+        </p>
+        <div class="flex gap-2">
+          <span class="px-2 py-0.5 bg-zinc-800/80 rounded text-zinc-400 text-[10px]">Confidentiality</span>
+          <span class="px-2 py-0.5 bg-zinc-800/80 rounded text-zinc-400 text-[10px]">Integrity</span>
+          <span class="px-2 py-0.5 bg-zinc-800/80 rounded text-zinc-400 text-[10px]">Entropy</span>
+        </div>
+      </a>
+
+      <a href="phishing.html" class="p-5 border border-zinc-800 rounded bg-zinc-900/30 hover:border-zinc-700 transition block group">
+        <div class="flex justify-between items-center mb-3">
+          <span class="text-zinc-300 font-semibold group-hover:text-amber-400 transition">02 / Phishing Detection</span>
+          <span class="text-zinc-600 font-bold">&rarr;</span>
+        </div>
+        <p class="text-zinc-500 leading-relaxed mb-4">
+          Lexical threat analyzer identifying homoglyph punycode spoofing, IP routing vectors, subdomain layering, and risky top-level domains.
+        </p>
+        <div class="flex gap-2">
+          <span class="px-2 py-0.5 bg-zinc-800/80 rounded text-zinc-400 text-[10px]">Social Engineering</span>
+          <span class="px-2 py-0.5 bg-zinc-800/80 rounded text-zinc-400 text-[10px]">Deception</span>
+          <span class="px-2 py-0.5 bg-zinc-800/80 rounded text-zinc-400 text-[10px]">Heuristics</span>
+        </div>
+      </a>
+    </div>
+  </main>
+</body>
+</html>
